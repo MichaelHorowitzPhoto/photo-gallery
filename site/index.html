@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Photography by Michael Horowitz</title>
+<meta name="description" content="Wildlife photography by Michael Horowitz.">
+<link rel="stylesheet" href="style.css"><script src="gallery.js" defer></script>
+</head>
+<body>
+<main id="gallery" aria-label="Photographs"></main>
+<p id="status" role="status">Loading photographs…</p>
+<button id="contact-toggle" aria-expanded="false" aria-controls="contact" aria-label="Contact Michael Horowitz"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/></svg></button>
+<aside id="contact" hidden><span>Michael Horowitz</span><a href="mailto:me@michaelhorowitz.photo">me@michaelhorowitz.photo</a></aside>
+<dialog id="viewer" aria-label="Enlarged photograph">
+<button id="close" aria-label="Close photograph">×</button>
+<button id="previous" aria-label="Previous photograph">‹</button>
+<img id="full" alt=""><span id="image-status" role="status"></span>
+<button id="next" aria-label="Next photograph">›</button>
+</dialog>
+<noscript><p>Please enable JavaScript to view the photo gallery.</p></noscript>
+</body>
+</html>

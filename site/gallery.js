@@ -1,0 +1,72 @@
+'use strict';
+const gallery = document.querySelector('#gallery');
+const status = document.querySelector('#status');
+const viewer = document.querySelector('#viewer');
+const full = document.querySelector('#full');
+const imageStatus = document.querySelector('#image-status');
+const toggle = document.querySelector('#contact-toggle');
+const contact = document.querySelector('#contact');
+let photos = [], active = 0, opener;
+function shuffle(items) {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [items[i], items[j]] = [items[j], items[i]];
+  }
+  return items;
+}
+function show(index) {
+  active = (index + photos.length) % photos.length;
+  const photo = photos[active];
+  imageStatus.textContent = 'Loading…';
+  full.alt = photo.alt || 'Wildlife photograph by Michael Horowitz';
+  full.onload = () => { imageStatus.textContent = ''; };
+  full.onerror = () => { imageStatus.textContent = 'This photograph could not load. Try another.'; };
+  full.src = photo.full;
+}
+gallery.addEventListener('click', event => {
+  const button = event.target.closest('.photo');
+  if (!button) return;
+  opener = button;
+  show(Number(button.dataset.index));
+  viewer.showModal();
+  document.querySelector('#close').focus();
+});
+document.querySelector('#close').onclick = () => viewer.close();
+document.querySelector('#previous').onclick = () => show(active - 1);
+document.querySelector('#next').onclick = () => show(active + 1);
+viewer.addEventListener('click', event => { if (event.target === viewer) viewer.close(); });
+viewer.addEventListener('close', () => { full.removeAttribute('src'); opener?.focus({preventScroll:true}); });
+viewer.addEventListener('keydown', event => {
+  if (event.key === 'ArrowLeft') {event.preventDefault(); show(active - 1);}
+  if (event.key === 'ArrowRight') {event.preventDefault(); show(active + 1);}
+});
+let touchStart;
+viewer.addEventListener('touchstart', event => { if(event.touches.length===1) touchStart={x:event.touches[0].clientX,y:event.touches[0].clientY}; else touchStart=null; },{passive:true});
+viewer.addEventListener('touchend', event => {
+  if (!touchStart || !event.changedTouches.length) return;
+  const dx=event.changedTouches[0].clientX-touchStart.x, dy=event.changedTouches[0].clientY-touchStart.y;
+  if(Math.abs(dx)>65 && Math.abs(dx)>Math.abs(dy)*1.5) show(active + (dx<0?1:-1));
+  touchStart=null;
+},{passive:true});
+function hideContact(){contact.hidden=true;toggle.setAttribute('aria-expanded','false');}
+toggle.onclick=()=>{contact.hidden=!contact.hidden;toggle.setAttribute('aria-expanded',String(!contact.hidden));};
+document.addEventListener('click',event=>{if(!contact.contains(event.target)&&!toggle.contains(event.target))hideContact();});
+document.addEventListener('keydown',event=>{if(event.key==='Escape')hideContact();});
+async function loadGallery(){
+  try {
+    const response=await fetch('photos.json');
+    if(!response.ok) throw new Error('Photo list unavailable');
+    photos=shuffle(await response.json());
+    const fragment=document.createDocumentFragment();
+    photos.forEach((photo,index)=>{
+      const button=document.createElement('button');button.className='photo';button.dataset.index=index;
+      button.setAttribute('aria-label',`Open photograph ${index+1}`);
+      const img=document.createElement('img');img.src=photo.thumb;img.alt=photo.alt||'';
+      img.width=800;img.height=600;img.loading=index<4?'eager':'lazy';img.decoding='async';
+      img.style.objectPosition=photo.position||'50% 50%';
+      button.append(img);fragment.append(button);
+    });
+    gallery.append(fragment);status.textContent=photos.length?'':'No photographs yet.';
+  } catch(error) { status.textContent='The photographs could not load. Please refresh to try again.'; }
+}
+loadGallery();

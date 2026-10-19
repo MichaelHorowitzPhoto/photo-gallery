@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Photography by Michael Horowitz</title>
+<meta name="description" content="Wildlife photography by Michael Horowitz.">
+<style>:root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif;background:#171b1c;color:#f5f5f5}*{box-sizing:border-box}body{margin:0}button,a{-webkit-tap-highlight-color:transparent}button{cursor:pointer;color:inherit;font:inherit}button:focus-visible,a:focus-visible{outline:3px solid #fff;outline-offset:-4px}#gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.photo{display:block;padding:0;border:0;background:#23292a;aspect-ratio:4/3;overflow:hidden}.photo img{display:block;width:100%;height:100%;object-fit:cover;transition:filter .18s}.photo:hover img{filter:brightness(1.06)}#status{text-align:center;font-size:14px;color:#bfc6c7;margin:28px}#status:empty{display:none}#contact-toggle{position:fixed;right:18px;bottom:max(18px,env(safe-area-inset-bottom));width:44px;height:44px;border:1px solid #ffffff30;border-radius:50%;background:#191e20d9;backdrop-filter:blur(12px);display:grid;place-items:center;z-index:2}svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.4}#contact{position:fixed;right:18px;bottom:calc(max(18px,env(safe-area-inset-bottom)) + 56px);padding:18px 20px;background:#191e20f5;border:1px solid #ffffff25;border-radius:8px;z-index:2;max-width:calc(100vw - 36px);box-shadow:0 8px 40px #0005}#contact span{display:block;font-size:12px;color:#aeb6b8;margin-bottom:8px}#contact a{color:#fff;font-size:14px;text-decoration:none;overflow-wrap:anywhere}dialog{border:0;padding:0;width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;background:#111e;color:#fff;overflow:hidden}dialog::backdrop{background:#111}dialog[open]{display:flex;align-items:center;justify-content:center}#full{max-width:100%;max-height:100%;object-fit:contain}dialog button{position:absolute;border:0;background:#171b1c99;z-index:1;width:48px;height:48px;border-radius:50%;font-size:32px;display:grid;place-items:center}#close{right:16px;top:max(16px,env(safe-area-inset-top))}#previous{left:12px;top:calc(50% - 24px)}#next{right:12px;top:calc(50% - 24px)}#image-status{position:absolute;bottom:22px;font-size:13px;background:#171b1ca0;padding:5px 10px;border-radius:4px}#image-status:empty{display:none}body:has(dialog[open]){overflow:hidden}@media(min-width:1500px){#gallery{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:600px){#gallery{grid-template-columns:1fr}}@media(prefers-reduced-motion:reduce){.photo img{transition:none}}
+</style>
+</head>
+<body>
+<main id="gallery" aria-label="Photographs"></main>
+<p id="status" role="status">Loading photographs…</p>
+<button id="contact-toggle" aria-expanded="false" aria-controls="contact" aria-label="Contact Michael Horowitz"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/></svg></button>
+<aside id="contact" hidden><span>Michael Horowitz</span><a href="mailto:me@michaelhorowitz.photo">me@michaelhorowitz.photo</a></aside>
+<dialog id="viewer" aria-label="Enlarged photograph">
+<button id="close" aria-label="Close photograph">×</button>
+<button id="previous" aria-label="Previous photograph">‹</button>
+<img id="full" alt=""><span id="image-status" role="status"></span>
+<button id="next" aria-label="Next photograph">›</button>
+</dialog>
+<noscript><p>Please enable JavaScript to view the photo gallery.</p></noscript>
+<script>'use strict';
+const gallery = document.querySelector('#gallery');
+const status = document.querySelector('#status');
+const viewer = document.querySelector('#viewer');
+const full = document.querySelector('#full');
+const imageStatus = document.querySelector('#image-status');
+const toggle = document.querySelector('#contact-toggle');
+const contact = document.querySelector('#contact');
+let photos = [], active = 0, opener;
+function shuffle(items) {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [items[i], items[j]] = [items[j], items[i]];
+  }
+  return items;
+}
+function show(index) {
+  active = (index + photos.length) % photos.length;
+  const photo = photos[active];
+  imageStatus.textContent = 'Loading…';
+  full.alt = photo.alt || 'Wildlife photograph by Michael Horowitz';
+  full.onload = () => { imageStatus.textContent = ''; };
+  full.onerror = () => { imageStatus.textContent = 'This photograph could not load. Try another.'; };
+  full.src = photo.full;
+}
+gallery.addEventListener('click', event => {
+  const button = event.target.closest('.photo');
+  if (!button) return;
+  opener = button;
+  show(Number(button.dataset.index));
+  viewer.showModal();
+  document.querySelector('#close').focus();
+});
+document.querySelector('#close').onclick = () => viewer.close();
+document.querySelector('#previous').onclick = () => show(active - 1);
+document.querySelector('#next').onclick = () => show(active + 1);
+viewer.addEventListener('click', event => { if (event.target === viewer) viewer.close(); });
+viewer.addEventListener('close', () => { full.removeAttribute('src'); opener?.focus({preventScroll:true}); });
+viewer.addEventListener('keydown', event => {
+  if (event.key === 'ArrowLeft') {event.preventDefault(); show(active - 1);}
+  if (event.key === 'ArrowRight') {event.preventDefault(); show(active + 1);}
+});
+let touchStart;
+viewer.addEventListener('touchstart', event => { if(event.touches.length===1) touchStart={x:event.touches[0].clientX,y:event.touches[0].clientY}; else touchStart=null; },{passive:true});
+viewer.addEventListener('touchend', event => {
+  if (!touchStart || !event.changedTouches.length) return;
+  const dx=event.changedTouches[0].clientX-touchStart.x, dy=event.changedTouches[0].clientY-touchStart.y;
+  if(Math.abs(dx)>65 && Math.abs(dx)>Math.abs(dy)*1.5) show(active + (dx<0?1:-1));
+  touchStart=null;
+},{passive:true});
+function hideContact(){contact.hidden=true;toggle.setAttribute('aria-expanded','false');}
+toggle.onclick=()=>{contact.hidden=!contact.hidden;toggle.setAttribute('aria-expanded',String(!contact.hidden));};
+document.addEventListener('click',event=>{if(!contact.contains(event.target)&&!toggle.contains(event.target))hideContact();});
+document.addEventListener('keydown',event=>{if(event.key==='Escape')hideContact();});
+async function loadGallery(){
+  try {
+    const response={ok:true,json:async()=>[{"thumb": "dist/images/thumbs/d52a82a052-e2958703ae9aef09.webp", "full": "dist/images/fulls/d52a82a052-e2958703ae9aef09.webp", "alt": "", "position": "50% 50%", "width": 2560, "height": 1567}, {"thumb": "dist/images/thumbs/027512fb19-615621bc7230f945.webp", "full": "dist/images/fulls/027512fb19-615621bc7230f945.webp", "alt": "", "position": "50% 50%", "width": 2560, "height": 1707}, {"thumb": "dist/images/thumbs/f13b8e4418-5024398da7dc1a9a.webp", "full": "dist/images/fulls/f13b8e4418-5024398da7dc1a9a.webp", "alt": "", "position": "50% 50%", "width": 2560, "height": 1707}, {"thumb": "dist/images/thumbs/5638cde1f4-f819df15b4633aff.webp", "full": "dist/images/fulls/5638cde1f4-f819df15b4633aff.webp", "alt": "", "position": "50% 50%", "width": 2560, "height": 1707}, {"thumb": "dist/images/thumbs/e66b36afdb-e205745126073787.webp", "full": "dist/images/fulls/e66b36afdb-e205745126073787.webp", "alt": "", "position": "50% 50%", "width": 2560, "height": 1707}, {"thumb": "dist/images/thumbs/112682d4d2-23d75ba25a753029.webp", "full": "dist/images/fulls/112682d4d2-23d75ba25a753029.webp", "alt": "", "position": "50% 50%", "width": 1646, "height": 2560}, {"thumb": "dist/images/thumbs/bd4bb7a004-a1e092485b9fe3d9.webp", "full": "dist/images/fulls/bd4bb7a004-a1e092485b9fe3d9.webp", "alt": "", "position": "50% 50%", "width": 2560, "height": 1707}, {"thumb": "dist/images/thumbs/641a1ea9e8-e4d1ff18bd603a66.webp", "full": "dist/images/fulls/641a1ea9e8-e4d1ff18bd603a66.webp", "alt": "", "position": "50% 50%", "width": 2560, "height": 1707}, {"thumb": "dist/images/thumbs/629351b1cb-350f27a9ec60faa4.webp", "full": "dist/images/fulls/629351b1cb-350f27a9ec60faa4.webp", "alt": "", "position": "50% 50%", "width": 2560, "height": 1707}, {"thumb": "dist/images/thumbs/b695ab20cc-e50196c12eece87a.webp", "full": "dist/images/fulls/b695ab20cc-e50196c12eece87a.webp", "alt": "", "position": "50% 50%", "width": 2560, "height": 1707}, {"thumb": "dist/images/thumbs/9f7c121e2e-db252e7976ed02c1.webp", "full": "dist/images/fulls/9f7c121e2e-db252e7976ed02c1.webp", "alt": "", "position": "50% 50%", "width": 2560, "height": 1803}, {"thumb": "dist/images/thumbs/aaecbb648c-41440518e4d50c95.webp", "full": "dist/images/fulls/aaecbb648c-41440518e4d50c95.webp", "alt": "", "position": "50% 50%", "width": 2560, "height": 2213}, {"thumb": "dist/images/thumbs/c932e21dda-6eb39a91702aa587.webp", "full": "dist/images/fulls/c932e21dda-6eb39a91702aa587.webp", "alt": "", "position": "50% 50%", "width": 2560, "height": 1707}]};
+    if(!response.ok) throw new Error('Photo list unavailable');
+    photos=shuffle(await response.json());
+    const fragment=document.createDocumentFragment();
+    photos.forEach((photo,index)=>{
+      const button=document.createElement('button');button.className='photo';button.dataset.index=index;
+      button.setAttribute('aria-label',`Open photograph ${index+1}`);
+      const img=document.createElement('img');img.src=photo.thumb;img.alt=photo.alt||'';
+      img.width=800;img.height=600;img.loading=index<4?'eager':'lazy';img.decoding='async';
+      img.style.objectPosition=photo.position||'50% 50%';
+      button.append(img);fragment.append(button);
+    });
+    gallery.append(fragment);status.textContent=photos.length?'':'No photographs yet.';
+  } catch(error) { status.textContent='The photographs could not load. Please refresh to try again.'; }
+}
+loadGallery();
+</script></body>
+</html>
