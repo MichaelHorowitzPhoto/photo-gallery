@@ -52,11 +52,7 @@ function hideContact(){contact.hidden=true;toggle.setAttribute('aria-expanded','
 toggle.onclick=()=>{contact.hidden=!contact.hidden;toggle.setAttribute('aria-expanded',String(!contact.hidden));};
 document.addEventListener('click',event=>{if(!contact.contains(event.target)&&!toggle.contains(event.target))hideContact();});
 document.addEventListener('keydown',event=>{if(event.key==='Escape')hideContact();});
-async function loadGallery(){
-  try {
-    const response=await fetch('photos.json');
-    if(!response.ok) throw new Error('Photo list unavailable');
-    photos=shuffle(await response.json());
+function renderGallery(){
     const fragment=document.createDocumentFragment();
     photos.forEach((photo,index)=>{
       const button=document.createElement('button');button.className='photo';button.dataset.index=index;
@@ -66,7 +62,22 @@ async function loadGallery(){
       img.style.objectPosition=photo.position||'50% 50%';
       button.append(img);fragment.append(button);
     });
-    gallery.append(fragment);status.textContent=photos.length?'':'No photographs yet.';
+    gallery.replaceChildren(fragment);
+}
+document.querySelector('#sort-controls').addEventListener('click',event=>{
+  const button=event.target.closest('button[data-sort]');
+  if(!button || button.getAttribute('aria-pressed')==='true') return;
+  if(button.dataset.sort==='newest') photos.sort((a,b)=>(b.captured||0)-(a.captured||0)||a.full.localeCompare(b.full));
+  else shuffle(photos);
+  document.querySelectorAll('[data-sort]').forEach(control=>control.setAttribute('aria-pressed',String(control===button)));
+  renderGallery();
+});
+async function loadGallery(){
+  try {
+    const response=await fetch('photos.json');
+    if(!response.ok) throw new Error('Photo list unavailable');
+    photos=shuffle(await response.json());
+    renderGallery();status.textContent=photos.length?'':'No photographs yet.';
   } catch(error) { status.textContent='The photographs could not load. Please refresh to try again.'; }
 }
 loadGallery();

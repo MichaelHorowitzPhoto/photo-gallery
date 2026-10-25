@@ -3,6 +3,7 @@
 import hashlib
 import json
 import shutil
+from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 from PIL import Image, ImageCms, ImageOps
@@ -11,6 +12,19 @@ ROOT = Path(__file__).resolve().parent.parent
 SOURCE = ROOT / 'originals'
 OUTPUT = ROOT / 'dist'
 SUPPORTED = {'.jpg', '.jpeg', '.png', '.webp', '.tif', '.tiff'}
+
+def capture_timestamp(source):
+    # DateTimeOriginal is the capture date, not the file's modification date.
+    exif = source.getexif()
+    try:
+        original = exif.get_ifd(34665).get(36867) or exif.get(36867)
+        if isinstance(original, bytes):
+            original = original.decode('ascii')
+        captured = datetime.strptime(original.strip().rstrip('\x00'), '%Y:%m:%d %H:%M:%S')
+        return int(captured.strftime('%Y%m%d%H%M%S'))
+    except (AttributeError, TypeError, ValueError, UnicodeError, OSError, KeyError):
+        return 0
+
 
 def build():
     overrides = json.loads((ROOT / 'photo-settings.json').read_text())
@@ -29,6 +43,7 @@ def build():
         digest = hashlib.sha256(path.read_bytes()).hexdigest()[:16]
         name = hashlib.sha256(key.encode()).hexdigest()[:10] + '-' + digest + '.webp'
         with Image.open(path) as source:
+            captured = capture_timestamp(source)
             image = ImageOps.exif_transpose(source)
             profile = image.info.get('icc_profile')
             if profile:
@@ -48,7 +63,7 @@ def build():
             large.save(OUTPUT/'images/fulls'/name, 'WEBP', quality=90, method=6)
             photos.append({'thumb':f'images/thumbs/{name}', 'full':f'images/fulls/{name}',
                            'alt':settings.get('alt',''), 'position':settings.get('position','50% 50%'),
-                           'width':large.width,'height':large.height})
+                           'width':large.width,'height':large.height,'captured':captured})
     (OUTPUT / 'photos.json').write_text(json.dumps(photos,indent=2)+'\n')
     (OUTPUT / '.nojekyll').touch()
     print(f'Built {len(photos)} photographs in {OUTPUT}')

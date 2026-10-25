@@ -1,6 +1,6 @@
 # Michael Horowitz — photography
 
-A minimal gallery: random order on each page load, edge-to-edge 4:3 tiles, full-photo viewer, and a small email button. One column on phones, two on tablets and typical laptops, three on wide screens. Native lazy loading delays offscreen photographs. No tracking, database, or server required.
+A minimal gallery: random order on each page load with a Random / Newest toggle, edge-to-edge 4:3 tiles, full-photo viewer, and a small email button. One column on phones, two on tablets and typical laptops, three on wide screens. Native lazy loading delays offscreen photographs. No tracking, database, or server required.
 
 ## Open the prototype
 
@@ -15,6 +15,8 @@ Unzip the download, then open `preview.html` in your browser. This preview inclu
 5. After a successful deployment, the Pages settings show the site URL. Project subfolder URLs work: all asset paths are relative.
 
 GitHub's setup documentation: https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages
+
+Newest sorts by the original photo’s EXIF capture date (DateTimeOriginal). Photos with missing or invalid capture dates appear last. The date is read before metadata is stripped from viewing copies.
 
 ## Add photos
 
