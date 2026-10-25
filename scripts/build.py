@@ -65,6 +65,13 @@ def build():
                            'alt':settings.get('alt',''), 'position':settings.get('position','50% 50%'),
                            'width':large.width,'height':large.height,'captured':captured})
     (OUTPUT / 'photos.json').write_text(json.dumps(photos,indent=2)+'\n')
+    # Updated assets get fresh URLs so browsers cannot reuse an older build.
+    index_path = OUTPUT / 'index.html'
+    html = index_path.read_text()
+    for asset in ('style.css', 'gallery.js'):
+        version = hashlib.sha256((OUTPUT / asset).read_bytes()).hexdigest()[:12]
+        html = html.replace(f'"{asset}"', f'"{asset}?v={version}"')
+    index_path.write_text(html)
     (OUTPUT / '.nojekyll').touch()
     print(f'Built {len(photos)} photographs in {OUTPUT}')
 

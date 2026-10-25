@@ -74,7 +74,7 @@ document.querySelector('#sort-controls').addEventListener('click',event=>{
 });
 async function loadGallery(){
   try {
-    const response=await fetch('photos.json');
+    const response=await fetch('photos.json',{cache:'no-cache'});
     if(!response.ok) throw new Error('Photo list unavailable');
     photos=shuffle(await response.json());
     renderGallery();status.textContent=photos.length?'':'No photographs yet.';
