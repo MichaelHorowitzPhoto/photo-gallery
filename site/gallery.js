@@ -6,7 +6,7 @@ const full = document.querySelector('#full');
 const imageStatus = document.querySelector('#image-status');
 const toggle = document.querySelector('#contact-toggle');
 const contact = document.querySelector('#contact');
-let photos = [], active = 0, opener;
+let photos = [], active = 0, opener, neighbors = [];
 function shuffle(items) {
   for (let i = items.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -23,7 +23,18 @@ function show(index) {
   const photo = photos[active];
   imageStatus.textContent = 'Loading…';
   full.alt = photo.alt || 'Wildlife photograph by Michael Horowitz';
-  full.onload = () => { imageStatus.textContent = ''; };
+  full.onload = () => {
+    imageStatus.textContent = '';
+    if (!viewer.open || photos.length < 2) return;
+    const urls = new Set([-1, 1].map(offset => photos[(active + offset + photos.length) % photos.length].full));
+    urls.delete(photo.full);
+    neighbors = Array.from(urls, url => {
+      const image = new Image();
+      image.fetchPriority = 'low';
+      image.src = url;
+      return image;
+    });
+  };
   full.onerror = () => { imageStatus.textContent = 'This photograph could not load. Try another.'; };
   full.src = photo.full;
 }
@@ -39,7 +50,7 @@ document.querySelector('#close').onclick = () => viewer.close();
 document.querySelector('#previous').onclick = () => show(active - 1);
 document.querySelector('#next').onclick = () => show(active + 1);
 viewer.addEventListener('click', event => { if (event.target === viewer) viewer.close(); });
-viewer.addEventListener('close', () => { full.removeAttribute('src'); opener?.focus({preventScroll:true}); });
+viewer.addEventListener('close', () => { neighbors = []; full.removeAttribute('src'); opener?.focus({preventScroll:true}); });
 viewer.addEventListener('keydown', event => {
   if (event.key === 'ArrowLeft') {event.preventDefault(); show(active - 1);}
   if (event.key === 'ArrowRight') {event.preventDefault(); show(active + 1);}
