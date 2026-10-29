@@ -14,6 +14,10 @@ function shuffle(items) {
   }
   return items;
 }
+function featuredOrder(items) {
+  const pinned=items.filter(photo=>Number.isInteger(photo.pin)&&photo.pin>0).sort((a,b)=>a.pin-b.pin||a.full.localeCompare(b.full));
+  return pinned.concat(shuffle(items.filter(photo=>!Number.isInteger(photo.pin)||photo.pin<=0)));
+}
 function show(index) {
   active = (index + photos.length) % photos.length;
   const photo = photos[active];
@@ -68,6 +72,7 @@ document.querySelector('#sort-controls').addEventListener('click',event=>{
   const button=event.target.closest('button[data-sort]');
   if(!button || button.getAttribute('aria-pressed')==='true') return;
   if(button.dataset.sort==='newest') photos.sort((a,b)=>(b.captured||0)-(a.captured||0)||a.full.localeCompare(b.full));
+  else if(button.dataset.sort==='featured') photos=featuredOrder(photos);
   else shuffle(photos);
   document.querySelectorAll('[data-sort]').forEach(control=>control.setAttribute('aria-pressed',String(control===button)));
   renderGallery();
@@ -76,7 +81,7 @@ async function loadGallery(){
   try {
     const response=await fetch('photos.json',{cache:'no-cache'});
     if(!response.ok) throw new Error('Photo list unavailable');
-    photos=shuffle(await response.json());
+    photos=featuredOrder(await response.json());
     renderGallery();status.textContent=photos.length?'':'No photographs yet.';
   } catch(error) { status.textContent='The photographs could not load. Please refresh to try again.'; }
 }

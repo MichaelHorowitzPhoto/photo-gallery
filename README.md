@@ -1,6 +1,6 @@
 # Michael Horowitz — photography
 
-A minimal gallery: random order on each page load with a Random / Newest toggle, edge-to-edge 4:3 tiles, full-photo viewer, and a small email button. One column on phones, two on tablets and typical laptops, three on wide screens. Native lazy loading delays offscreen photographs. No tracking, database, or server required.
+A minimal gallery: a Featured order with pinned photos followed by random photos, plus Random and Newest options, edge-to-edge 4:3 tiles, full-photo viewer, and a small email button. One column on phones, two on tablets and typical laptops, three on wide screens. Native lazy loading delays offscreen photographs. No tracking, database, or server required.
 
 ## Open the prototype
 
@@ -27,6 +27,10 @@ The workflow automatically creates thumbnails (up to 1000 px) and larger viewing
 The files included in `originals/` are copies of the photographs already on your current public site, for this prototype. Replace them with your preferred exported photographs whenever you like. They are viewing copies, not your camera originals.
 
 Deleting a file from `originals/` removes its generated copies from the next deployment. Original files remain in Git history. On a public repository, the source photographs are public too. Prefer normal JPEG exports rather than very large camera files; larger collections can later use external storage.
+
+## Pin favorites and adjust crops
+
+Open `crop-helper.html` in your browser, choose the `originals` folder and load `photo-settings.json`. Set a positive pin order on each favorite; lower numbers appear first. Leave it blank to unpin. Download the settings and replace the project’s `photo-settings.json`. Featured shows pins first and shuffles the rest; Random shuffles all photos. Ties in pin order are resolved consistently.
 
 ## Adjust an individual photograph
 

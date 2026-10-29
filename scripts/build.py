@@ -63,7 +63,8 @@ def build():
             large.save(OUTPUT/'images/fulls'/name, 'WEBP', quality=90, method=6)
             photos.append({'thumb':f'images/thumbs/{name}', 'full':f'images/fulls/{name}',
                            'alt':settings.get('alt',''), 'position':settings.get('position','50% 50%'),
-                           'width':large.width,'height':large.height,'captured':captured})
+                           'width':large.width,'height':large.height,'captured':captured,
+                           'pin':settings.get('pin') if type(settings.get('pin')) is int and settings['pin'] > 0 else None})
     (OUTPUT / 'photos.json').write_text(json.dumps(photos,indent=2)+'\n')
     # Updated assets get fresh URLs so browsers cannot reuse an older build.
     index_path = OUTPUT / 'index.html'

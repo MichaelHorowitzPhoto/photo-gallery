@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Photo crop helper</title>
+<style>
+:root{font-family:system-ui,sans-serif;color:#eee;background:#171b1c}body{max-width:1400px;margin:auto;padding:24px}h1{font-size:24px}p{color:#bbc4c4;line-height:1.5}button,.file{display:inline-block;background:#303a3b;color:#fff;padding:10px 14px;border:0;border-radius:5px;font:inherit;cursor:pointer}button:disabled{opacity:.45;cursor:default}input[type=file]{max-width:100%}.setup{display:flex;flex-wrap:wrap;gap:12px;align-items:center}#message{min-height:1.5em}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;margin-top:24px}.card{background:#222a2b;border-radius:6px;overflow:hidden}.tile{aspect-ratio:4/3;background:#293031;overflow:hidden}.tile img{display:block;width:100%;height:100%;object-fit:cover}.controls{padding:12px 14px}.filename{display:block;overflow-wrap:anywhere;font-size:13px;margin-bottom:8px}.controls label{display:block;color:#bbc4c4;font-size:13px;margin-top:8px}.controls input{width:100%}.controls button{margin-top:8px;font-size:13px}.error{color:#f3ba9e;font-size:13px}.toolbar{position:sticky;bottom:0;padding:12px;background:#171b1cee;z-index:2}@media(max-width:520px){body{padding:14px}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.controls{padding:8px}}@media(max-width:340px){.grid{grid-template-columns:1fr}}
+</style></head><body>
+<h1>Photo crop and pin helper</h1>
+<p>Choose your <strong>originals</strong> folder, then load your existing <strong>photo-settings.json</strong>. Adjust the 4:3 crops and enter a pin order for any favorites. Leave pin order blank for unpinned photos, then download the updated settings.</p>
+<div class="setup"><label class="file">Choose originals folder <input id="photos" type="file" webkitdirectory multiple></label><label class="file">Load existing settings <input id="settings" type="file" accept=".json,application/json"></label></div>
+<p id="message" role="status">Choose your originals folder to begin.</p>
+<div id="gallery" class="grid"></div>
+<div class="toolbar"><button id="download" type="button" disabled>Download photo-settings.json</button> <span>Replace the project’s existing settings file with this download.</span></div>
+<script>
+'use strict';
+const $=id=>document.getElementById(id); let files=[], settings={}, urls=[], loaded=false, changed=false;
+function name(file){const path=file.webkitRelativePath||file.name;return path.includes('/')?path.slice(path.indexOf('/')+1):path;}
+function render(){
+  urls.forEach(url=>URL.revokeObjectURL(url));urls=[];const fragment=document.createDocumentFragment();
+  for(const file of files){
+    const key=name(file), card=document.createElement('article');card.className='card';
+    const tile=document.createElement('div');tile.className='tile';const img=document.createElement('img');img.alt='Crop preview: '+key;img.loading='lazy';img.src=URL.createObjectURL(file);urls.push(img.src);tile.append(img);
+    const controls=document.createElement('div');controls.className='controls';const filename=document.createElement('strong');filename.className='filename';filename.textContent=key;controls.append(filename);
+    const pos=String(settings[key]?.position||'50% 50%').match(/^(\d+(?:\.\d+)?)%\s+(\d+(?:\.\d+)?)%$/);const sliders=[];
+    ['Horizontal','Vertical'].forEach((axis,i)=>{const label=document.createElement('label'),value=document.createElement('span'),input=document.createElement('input');input.type='range';input.min=0;input.max=100;input.value=pos?pos[i+1]:50;label.append(document.createTextNode(axis+': '),value,input);controls.append(label);sliders.push({input,value});});
+    function update(save){const [h,v]=sliders.map(s=>s.input.value+'%');img.style.objectPosition=h+' '+v;sliders[0].value.textContent=h;sliders[1].value.textContent=v;if(save){settings[key]={...(settings[key]||{}),position:h+' '+v};changed=true;$('download').disabled=false;}}
+    sliders.forEach(s=>s.input.addEventListener('input',()=>update(true)));const reset=document.createElement('button');reset.type='button';reset.textContent='Center';reset.onclick=()=>{sliders.forEach(s=>s.input.value=50);update(true)};controls.append(reset);
+    const pinLabel=document.createElement('label');pinLabel.append(document.createTextNode('Pin order (blank = unpinned)'));const pin=document.createElement('input');pin.type='number';pin.min='1';pin.step='1';pin.placeholder='Not pinned';pin.value=Number.isInteger(settings[key]?.pin)&&settings[key].pin>0?settings[key].pin:'';pinLabel.append(pin);controls.append(pinLabel);
+    pin.addEventListener('input',()=>{if(pin.value && (!pin.validity.valid || !Number.isSafeInteger(Number(pin.value)) || Number(pin.value)<1)) {pin.setCustomValidity('Use a whole number greater than zero.');return;}pin.setCustomValidity('');const entry={...(settings[key]||{})};if(pin.value)entry.pin=Number(pin.value);else delete entry.pin;if(Object.keys(entry).length)settings[key]=entry;else delete settings[key];changed=true;$('download').disabled=false;});
+    img.onerror=()=>{const warning=document.createElement('p');warning.className='error';warning.textContent='This image cannot be previewed by this browser.';controls.append(warning)};update(false);card.append(tile,controls);fragment.append(card);
+  }
+  $('gallery').replaceChildren(fragment);
+}
+$('photos').onchange=e=>{files=Array.from(e.target.files).filter(f=>/\.(jpe?g|png|webp|tiff?)$/i.test(f.name)).sort((a,b)=>name(a).localeCompare(name(b)));$('message').textContent=files.length?`${files.length} photos loaded. ${loaded?'Existing settings loaded.':'Load your existing settings before making changes.'}`:'No supported photos found.';render();};
+$('settings').onchange=async e=>{if(!e.target.files.length)return;if(changed&&!confirm('Loading settings will replace your unsaved crop adjustments. Continue?')){e.target.value='';return}try{const parsed=JSON.parse(await e.target.files[0].text());if(!parsed||Array.isArray(parsed)||typeof parsed!=='object'||Object.values(parsed).some(v=>!v||Array.isArray(v)||typeof v!=='object'))throw Error();settings=parsed;loaded=true;changed=false;$('download').disabled=false;$('message').textContent='Existing settings loaded. Adjust crops below, then download the updated file.';render();}catch{$('message').textContent='Could not read settings. Please choose a valid photo-settings.json file.';}};
+$('download').onclick=()=>{const invalid=$('gallery').querySelector('input:invalid');if(invalid){invalid.reportValidity();return}if(!loaded&&!confirm('You have not loaded your existing photo-settings.json. Downloading now will omit those settings. Continue?'))return;const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([JSON.stringify(settings,null,2)+'\n'],{type:'application/json'}));link.download='photo-settings.json';link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);};
+</script></body></html>
