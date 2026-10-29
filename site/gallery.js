@@ -81,7 +81,14 @@ async function loadGallery(){
   try {
     const response=await fetch('photos.json',{cache:'no-cache'});
     if(!response.ok) throw new Error('Photo list unavailable');
-    photos=featuredOrder(await response.json());
+    const items=await response.json();
+    const hasPins=items.some(photo=>Number.isInteger(photo.pin)&&photo.pin>0);
+    const featured=document.querySelector('[data-sort="featured"]');
+    const random=document.querySelector('[data-sort="random"]');
+    featured.hidden=!hasPins;
+    featured.setAttribute('aria-pressed',String(hasPins));
+    random.setAttribute('aria-pressed',String(!hasPins));
+    photos=hasPins?featuredOrder(items):shuffle(items);
     renderGallery();status.textContent=photos.length?'':'No photographs yet.';
   } catch(error) { status.textContent='The photographs could not load. Please refresh to try again.'; }
 }
