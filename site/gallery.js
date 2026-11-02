@@ -6,6 +6,8 @@ const full = document.querySelector('#full');
 const imageStatus = document.querySelector('#image-status');
 const toggle = document.querySelector('#contact-toggle');
 const contact = document.querySelector('#contact');
+const infoToggle = document.querySelector('#info-toggle');
+const photoInfo = document.querySelector('#photo-info');
 let photos = [], active = 0, opener, neighbors = [];
 function shuffle(items) {
   for (let i = items.length - 1; i > 0; i--) {
@@ -21,6 +23,17 @@ function featuredOrder(items) {
 function show(index) {
   active = (index + photos.length) % photos.length;
   const photo = photos[active];
+  const details = photo.details || {};
+  const fields = [['Date', details.date], ['Camera', details.camera], ['Lens', details.lens], ['Focal length', details.focal], ['Aperture', details.aperture], ['Shutter', details.shutter], ['ISO', details.iso]];
+  const entries = fields.filter(([, value]) => value);
+  photoInfo.replaceChildren(...entries.map(([label, value]) => {
+    const row = document.createElement('div');
+    const name = document.createElement('span'); name.textContent = label;
+    const content = document.createElement('span'); content.textContent = value;
+    row.append(name, content); return row;
+  }));
+  infoToggle.hidden = !entries.length;
+  if (!entries.length) { photoInfo.hidden = true; infoToggle.setAttribute('aria-expanded', 'false'); }
   imageStatus.textContent = 'Loading…';
   full.alt = photo.alt || 'Wildlife photograph by Michael Horowitz';
   full.onload = () => {
@@ -46,11 +59,12 @@ gallery.addEventListener('click', event => {
   viewer.showModal();
   document.querySelector('#close').focus();
 });
+infoToggle.onclick = () => { photoInfo.hidden = !photoInfo.hidden; infoToggle.setAttribute('aria-expanded', String(!photoInfo.hidden)); };
 document.querySelector('#close').onclick = () => viewer.close();
 document.querySelector('#previous').onclick = () => show(active - 1);
 document.querySelector('#next').onclick = () => show(active + 1);
 viewer.addEventListener('click', event => { if (event.target === viewer) viewer.close(); });
-viewer.addEventListener('close', () => { neighbors = []; full.removeAttribute('src'); opener?.focus({preventScroll:true}); });
+viewer.addEventListener('close', () => { photoInfo.hidden = true; infoToggle.setAttribute('aria-expanded', 'false'); neighbors = []; full.removeAttribute('src'); opener?.focus({preventScroll:true}); });
 viewer.addEventListener('keydown', event => {
   if (event.key === 'ArrowLeft') {event.preventDefault(); show(active - 1);}
   if (event.key === 'ArrowRight') {event.preventDefault(); show(active + 1);}

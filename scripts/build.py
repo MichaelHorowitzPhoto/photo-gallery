@@ -4,6 +4,8 @@ import hashlib
 import json
 import shutil
 from datetime import datetime
+from fractions import Fraction
+import math
 from io import BytesIO
 from pathlib import Path
 from PIL import Image, ImageCms, ImageOps
@@ -26,6 +28,44 @@ def capture_timestamp(source):
         return 0
 
 
+def photo_details(source, captured):
+    """Publish only selected photographic metadata, never GPS or other EXIF."""
+    details = {}
+    exif = source.getexif()
+    try:
+        tags = exif.get_ifd(34665)
+    except (TypeError, ValueError, OSError, KeyError):
+        tags = {}
+    def text(tag, group):
+        value = group.get(tag)
+        if isinstance(value, bytes):
+            value = value.decode('utf-8', errors='replace')
+        return value.strip(' \x00') if isinstance(value, str) else ''
+    for key, tag, group in [('camera', 272, exif), ('lens', 42036, tags)]:
+        value = text(tag, group)
+        if value:
+            details[key] = value
+    if captured:
+        date = str(captured).zfill(14)
+        details['date'] = f'{date[:4]}-{date[4:6]}-{date[6:8]}'
+    def number(tag):
+        try:
+            value = float(tags.get(tag))
+            return value if math.isfinite(value) and value > 0 else None
+        except (TypeError, ValueError, ZeroDivisionError, OverflowError):
+            return None
+    aperture, shutter, iso, focal = (number(tag) for tag in (33437, 33434, 34855, 37386))
+    if aperture:
+        details['aperture'] = f'f/{aperture:g}'
+    if shutter:
+        details['shutter'] = f'{Fraction(shutter).limit_denominator(10000)} s' if shutter < 1 else f'{shutter:g} s'
+    if iso:
+        details['iso'] = f'ISO {iso:g}'
+    if focal:
+        details['focal'] = f'{focal:g} mm'
+    return details
+
+
 def build():
     overrides = json.loads((ROOT / 'photo-settings.json').read_text())
     photos = []
@@ -44,6 +84,7 @@ def build():
         name = hashlib.sha256(key.encode()).hexdigest()[:10] + '-' + digest + '.webp'
         with Image.open(path) as source:
             captured = capture_timestamp(source)
+            details = photo_details(source, captured)
             image = ImageOps.exif_transpose(source)
             profile = image.info.get('icc_profile')
             if profile:
@@ -63,7 +104,7 @@ def build():
             large.save(OUTPUT/'images/fulls'/name, 'WEBP', quality=90, method=6)
             photos.append({'thumb':f'images/thumbs/{name}', 'full':f'images/fulls/{name}',
                            'alt':settings.get('alt',''), 'position':settings.get('position','50% 50%'),
-                           'width':large.width,'height':large.height,'captured':captured,
+                           'width':large.width,'height':large.height,'captured':captured,'details':details,
                            'pin':settings.get('pin') if type(settings.get('pin')) is int and settings['pin'] > 0 else None})
     (OUTPUT / 'photos.json').write_text(json.dumps(photos,indent=2)+'\n')
     # Updated assets get fresh URLs so browsers cannot reuse an older build.

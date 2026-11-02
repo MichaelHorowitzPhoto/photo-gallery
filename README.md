@@ -32,6 +32,8 @@ Deleting a file from `originals/` removes its generated copies from the next dep
 
 Open `crop-helper.html` in your browser, choose the `originals` folder and load `photo-settings.json`. Set a positive pin order on each favorite; lower numbers appear first. Leave it blank to unpin. Download the settings and replace the project’s `photo-settings.json`. Featured shows pins first and shuffles the rest; Random shuffles all photos. Ties in pin order are resolved consistently.
 
+The viewer’s information button shows available capture details (date, camera, lens, focal length, aperture, shutter speed, and ISO). It appears only when a photo has supported EXIF fields. GPS and other metadata are not included.
+
 ## Adjust an individual photograph
 
 Edit `photo-settings.json`, using paths relative to `originals/`:
